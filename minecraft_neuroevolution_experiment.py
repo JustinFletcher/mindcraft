@@ -3,7 +3,7 @@
 Created on Sun Jul 10 15:58:08 2016
 
 @author: Justin Fletcher
-@title: 
+# @title: 
 """
 
 
@@ -11,7 +11,7 @@ import MalmoPython
 import os
 import sys
 import time
-import numpy
+import numpy as np
 import platform
 import socket
 import subprocess
@@ -25,17 +25,18 @@ from subprocess import Popen, CREATE_NEW_CONSOLE
 
 
 sys.path.insert(0, 'C:/Malmo/malmo_net/')
+sys.path.insert(0, 'C:/neurocomputation')
 import malmo_exoself as me
-
+import neurocomputation as nc
 
 # Print the current working directory.
-#print os.getcwd()
+print os.getcwd()
 
 # flush print output immediately.
-#sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 
-def get_mission_xml(num_agents=1):
+def get_mission_xml(num_agents=1, window_height=256, window_width=256):
 
     xml = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
     <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -68,8 +69,8 @@ def get_mission_xml(num_agents=1):
                 <ObservationFromFullStats/>
                 <ContinuousMovementCommands turnSpeedDegs="180"/>
                 <VideoProducer>
-                    <Width>''' + str(200) + '''</Width>
-                    <Height>''' + str(100) + '''</Height>
+                    <Width>''' + str(window_width) + '''</Width>
+                    <Height>''' + str(window_height) + '''</Height>
                 </VideoProducer>
             </AgentHandlers>
           </AgentSection>'''
@@ -77,10 +78,11 @@ def get_mission_xml(num_agents=1):
     xml += '</Mission>'
     return(xml)
 
+
 # This idiom is required for multiprocessing.
 if __name__ == '__main__':
 
-    # Select the desired number of exoelves.
+    # Select the desired number of exoselves.
     num_exoselves = 2
 
     # Build physical exoself addresses locations.
@@ -89,32 +91,46 @@ if __name__ == '__main__':
                          ['127.0.0.1', 10002],
                          ['127.0.0.1', 10003]]
 
-    exoself_addresses = [['127.0.0.1', 10000+i] for i in range(num_exoselves)]
+    exoself_addresses = [['127.0.0.1', 10000 + i]
+                         for i in range(num_exoselves)]
 
     # Build the XML for this mission.
-    mission_xml = get_mission_xml(num_exoselves)
-
-    # Create a pool of workers to hold the exoselfs.
-    worker_pool = Pool(processes=num_exoselves)
+    window_height = 100
+    window_width = 200
+    mission_xml = get_mission_xml(num_exoselves, window_height=window_height,
+                                  window_width=window_width)
 
     # Instantiate a Queue for communication.
     mind_queue = Queue()
 
-    # Iterate over each physical address to instantiate a worker there.
-    for role, exoself_address in enumerate(exoself_addresses):
+    role_queue = Queue()
 
-        # Get the client IP address.
-        ip_address = exoself_address[0]
+    [role_queue.put(i) for i in range(num_exoselves)]
 
-        # Get the client port.
-        port = exoself_address[1]
+    # Create a pool of workers to hold the exoselves.
+    worker_pool = Pool(processes=num_exoselves,
+                       initializer=me.MinecraftExoself,
+                       initargs=(mission_xml, exoself_addresses, role_queue,
+                                 mind_queue,))
 
-        # Launch a worker which creates and launches an exoself.
-        worker_pool.apply_async(me.MinecraftExoself, args=(mission_xml, role,
-                                                           exoself_addresses,
-                                                           ip_address, port,))
+    for i in range(num_exoselves):
+
+        # Set network parameters.
+        layer_size_list = [3 * (window_height * window_width), 100, 8]
+        activation_function = np.tanh
+        scale = 0.001
+
+        # Builds a random network generator from the specifications.
+        network_gen = nc.FeedForwardNeuralNetworkGenerator(layer_size_list,
+                                                           np.tanh, scale)
+
+        # Generate a network according to the instantiated generator.
+        net = network_gen()
+
+        # Add the instantiated network to the queue of agents.
+        mind_queue.put(net)
 
     worker_pool.close()
     worker_pool.join()
 
-    print("At the end...")
+print("And I'm done.")
