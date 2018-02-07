@@ -21,19 +21,21 @@ from multiprocessing import Pool
 from multiprocessing import Queue
 
 from sys import executable
-from subprocess import Popen, CREATE_NEW_CONSOLE
+# from subprocess import Popen, CREATE_NEW_CONSOLE
 
 
-sys.path.insert(0, 'C:/Malmo/malmo_net/')
-sys.path.insert(0, 'C:/neurocomputation')
+# sys.path.insert(0, 'C:/Malmo/malmo_net/')
+# sys.path.insert(0, 'C:/neurocomputation')
 import malmo_exoself as me
+
+sys.path.insert(0, '/home/justin/research/neurocomputation')
 import neurocomputation as nc
 
 # Print the current working directory.
-print os.getcwd()
+print(os.getcwd())
 
 # flush print output immediately.
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+# sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 
 def get_mission_xml(num_agents=1, window_height=256, window_width=256):
@@ -97,12 +99,12 @@ if __name__ == '__main__':
     # Build the XML for this mission.
     window_height = 100
     window_width = 200
-    mission_xml = get_mission_xml(num_exoselves, window_height=window_height,
+    mission_xml = get_mission_xml(num_exoselves,
+                                  window_height=window_height,
                                   window_width=window_width)
 
     # Instantiate a Queue for communication.
     mind_queue = Queue()
-
     role_queue = Queue()
 
     [role_queue.put(i) for i in range(num_exoselves)]
@@ -110,25 +112,26 @@ if __name__ == '__main__':
     # Create a pool of workers to hold the exoselves.
     worker_pool = Pool(processes=num_exoselves,
                        initializer=me.MinecraftExoself,
-                       initargs=(mission_xml, exoself_addresses, role_queue,
+                       initargs=(mission_xml,
+                                 exoself_addresses,
+                                 role_queue,
                                  mind_queue,))
 
     for i in range(num_exoselves):
 
         # Set network parameters.
-        layer_size_list = [3 * (window_height * window_width), 100, 8]
+        layer_size_list = [3 * (window_height * window_width), 10, 8]
         activation_function = np.tanh
         scale = 0.001
 
         # Builds a random network generator from the specifications.
-        network_gen = nc.FeedForwardNeuralNetworkGenerator(layer_size_list,
-                                                           np.tanh, scale)
-
-        # Generate a network according to the instantiated generator.
-        net = network_gen()
+        mind_builder = nc.FeedForwardNeuralNetworkBuilder(layer_size_list,
+                                                          act_function=np.tanh,
+                                                          scale=scale)
 
         # Add the instantiated network to the queue of agents.
-        mind_queue.put(net)
+        mind_queue.put(mind_builder)
+        print("put a net on the queue")
 
     worker_pool.close()
     worker_pool.join()

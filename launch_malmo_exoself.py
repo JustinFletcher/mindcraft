@@ -92,7 +92,9 @@ def create_exoself(mission_xml, role, exoself_addresses, ip_address, port):
         mission_spec = MalmoPython.MissionSpec(mission_xml, True)
 
         # Instantiate a new exoself on the local client.
-        exoself = me.MinecraftExoself(mission_spec, exoself_addresses,
-                                      MalmoPython.MissionRecordSpec(), role)
+        exoself = me.MinecraftExoself(mission_spec,
+                                      exoself_addresses,
+                                      MalmoPython.MissionRecordSpec(),
+                                      role)
 
         return(exoself)

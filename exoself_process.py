@@ -6,7 +6,6 @@ Created on Sun Jul 10 15:58:08 2016
 @title: 
 """
 
-
 import MalmoPython
 import os
 import sys

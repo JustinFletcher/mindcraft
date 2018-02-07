@@ -11,11 +11,14 @@ import sys
 
 import time
 
+import subprocess
+
 import numpy as np
 
 import MalmoPython
 
 import socket
+
 
 def port_has_listener(ip_address, port):
 
@@ -62,15 +65,19 @@ def launch_minecraft_client(ip_address, port):
 #
 #        # Change Back.
 #        os.chdir('..\malmo_net')
-#    else:
-#
-#        # Change Working Dir.
-#        os.chdir('..\Minecraft')
-#
-#        subprocess.Popen("x-terminal-emulator -e ./launchClient.sh -prot "+str(port), close_fds=True, shell=True)
-#
-#        # Change Back.
-#        os.chdir('..\malmo_net')
+    else:
+
+        # Change Working Dir.
+        os.chdir('../Minecraft')
+
+        cmd_str = "x-terminal-emulator -e ./launchClient.sh -port " + str(port)
+
+        subprocess.Popen(cmd_str,
+                         close_fds=True,
+                         shell=True)
+
+        # Change Back.
+        os.chdir('../mindcraft')
 
 
 class MinecraftExoself(object):
@@ -79,9 +86,11 @@ class MinecraftExoself(object):
     # should be permenant, with different agents assigned to the Exoself,
     # through simulation-time.
 
-    def __init__(self, mission_xml, exoself_addresses,
-                 role_queue, mind_queue):
-
+    def __init__(self,
+                 mission_xml,
+                 exoself_addresses,
+                 role_queue,
+                 mind_queue):
 
         role = role_queue.get(True)
         ip_address = exoself_addresses[role][0]
@@ -102,7 +111,7 @@ class MinecraftExoself(object):
 
             # Heartbeat, track, and pause.
             t += 1
-            print '.',
+            print('.')
             time.sleep(1)
 
         mission_spec = MalmoPython.MissionSpec(mission_xml, True)
@@ -120,13 +129,13 @@ class MinecraftExoself(object):
         try:
             agent_host.parse(sys.argv)
         except RuntimeError as e:
-            print 'ERROR:', e
-            print agent_host.getUsage()
+            print('ERROR:', e)
+            print(agent_host.getUsage())
             exit(1)
 
         # Validate the role.
         role = agent_host.getIntArgument("role")
-        print "Will run as role", role
+        print("Will run as role", role)
 
         # Initialize the Malmo agent host's observation policy.
         obs_policy = MalmoPython.ObservationsPolicy.LATEST_OBSERVATION_ONLY
@@ -162,18 +171,18 @@ class MinecraftExoself(object):
 
             # TODO: make this hold depend on client 0's launch.
             time.sleep(30)
-            print "The wait is over!"
+            print("The wait is over!")
 
         # Initialize the Malmo mission.
         self.initialize_mission()
 
         # Noify the system that this Exoself is in waitForStart.
-        print "Entring waitForStart"
+        print("Entring waitForStart")
 
         # Wait for the Mission to begin.
         self.await_mission_start()
 
-        print "Exiting waitForStart"
+        print("Exiting waitForStart")
 
         # Instantiate a new exoself on the local client.
         self.main()
@@ -185,14 +194,24 @@ class MinecraftExoself(object):
 
         while True:
 
+            print("trying to get a mind")
+
+            mind = self.mind_queue.get(True)
+
+            print("trying to set a mind")
+
             # Block until a mind is put on the queue. Once it is set the mind.
-            self.set_mind(self.mind_queue.get(True))
+            self.set_mind(mind)
+
+            print("got a mind")
 
             # Observe the world state.
             world_state = self.agent_host.getWorldState()
 
             # Loop until the world state indicates that the mission has ended.
             while world_state.is_mission_running:
+
+                print("mission running...")
 
                 # Send the heartbeat.
                 time.sleep(0.01)
@@ -204,28 +223,28 @@ class MinecraftExoself(object):
                 if world_state.number_of_video_frames_since_last_state > 0:
 
                     # Observe it.
-                    stimulus_vector = np.array(world_state.video_frames[0].pixels)
+                    stimulus = np.array(world_state.video_frames[0].pixels)
 
                     # Then, stimulate the mind (agent) hosted in this exoself.
-                    actuator_vector = self.mind.stimulate(stimulus_vector)
+                    actuator_vector = self.mind.stimulate(stimulus)
 
                     # Command the agent.
                     # actuator_vector = np.random.rand(8)
                     # actuator_vector[0:4] = (actuator_vector[0:4]*2)-1
 
-                    self.agent_host.sendCommand("move "+str(actuator_vector[0]))
-                    self.agent_host.sendCommand("strafe "+str(actuator_vector[1]))
-                    self.agent_host.sendCommand("pitch "+str(actuator_vector[2]))
-                    self.agent_host.sendCommand("turn "+str(actuator_vector[3]))
+                    self.agent_host.sendCommand("move " + str(actuator_vector[0]))
+                    self.agent_host.sendCommand("strafe " + str(actuator_vector[1]))
+                    self.agent_host.sendCommand("pitch " + str(actuator_vector[2]))
+                    self.agent_host.sendCommand("turn " + str(actuator_vector[3]))
 
-                    self.agent_host.sendCommand("jump "+str(actuator_vector[4]))
-                    self.agent_host.sendCommand("crouch "+str(actuator_vector[5]))
-                    self.agent_host.sendCommand("attack "+str(actuator_vector[6]))
-                    self.agent_host.sendCommand("use "+str(actuator_vector[7]))
+                    self.agent_host.sendCommand("jump " + str(actuator_vector[4]))
+                    self.agent_host.sendCommand("crouch " + str(actuator_vector[5]))
+                    self.agent_host.sendCommand("attack " + str(actuator_vector[6]))
+                    self.agent_host.sendCommand("use " + str(actuator_vector[7]))
 
                 # If the world state contains an error, print it.
                 for error in world_state.errors:
-                    print "Error:", error.text
+                    print("Error:", error.text)
 
             print("The agent occupying exoself %d has died." % self.client_role)
 
@@ -247,10 +266,10 @@ class MinecraftExoself(object):
             # If the world state contains an error, print it.
             if len(world_state.errors) > 0:
                 for err in world_state.errors:
-                    print err
+                    print(err)
                 exit(1)
 
-        print "Mission started!"
+        print("Mission started!")
 
     def initialize_mission(self):
 
@@ -263,7 +282,7 @@ class MinecraftExoself(object):
                 break
             except RuntimeError as e:
                 if retry == max_retries - 1:
-                    print "Error starting mission:", e
+                    print("Error starting mission:", e)
                     exit(1)
                 else:
                     time.sleep(2)
@@ -272,4 +291,4 @@ class MinecraftExoself(object):
         self.thread = t
 
     def set_mind(self, mind):
-        self.mind = mind
+        self.mind = mind.build()
