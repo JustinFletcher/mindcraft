@@ -28,7 +28,8 @@ from sys import executable
 # sys.path.insert(0, 'C:/neurocomputation')
 import malmo_exoself as me
 
-sys.path.insert(0, '/home/justin/research/neurocomputation')
+# sys.path.insert(0, '/home/justin/research/neurocomputation')
+sys.path.insert(0, 'C:/Users/Justi/Research/neurocomputation')
 import neurocomputation as nc
 
 # Print the current working directory.
@@ -98,7 +99,7 @@ if __name__ == '__main__':
 
     # Build the XML for this mission.
     window_height = 100
-    window_width = 200
+    window_width = 300
     mission_xml = get_mission_xml(num_exoselves,
                                   window_height=window_height,
                                   window_width=window_width)
@@ -115,7 +116,7 @@ if __name__ == '__main__':
                        initargs=(mission_xml,
                                  exoself_addresses,
                                  role_queue,
-                                 mind_queue,))
+                                 mind_queue))
 
     for i in range(num_exoselves):
 

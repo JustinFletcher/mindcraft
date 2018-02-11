@@ -43,7 +43,7 @@ def launch_minecraft_client(ip_address, port):
         os.startfile('launchClient.bat')
 
         # Change Back.
-        os.chdir('..\malmo_net')
+        os.chdir('..\mindcraft')
 
 #    # If on OSX.
 #    elif sys.platform == 'darwin':
@@ -97,7 +97,7 @@ class MinecraftExoself(object):
         port = exoself_addresses[role][1]
 
         # Pause for 1 second per role, to ensure start staggering.
-        time.sleep(role)
+        time.sleep(10 * role)
 
         # launch a client local to this process.
         launch_minecraft_client(ip_address, port)
@@ -244,7 +244,7 @@ class MinecraftExoself(object):
 
                 # If the world state contains an error, print it.
                 for error in world_state.errors:
-                    print("Error:", error.text)
+                    print("Error: ", error.text)
 
             print("The agent occupying exoself %d has died." % self.client_role)
 
